@@ -1,7 +1,8 @@
-﻿const linebot = require('linebot');
+const linebot = require('linebot');//引包
 const express = require('express');
 var firebase = require('firebase');
 
+//firebase的設定
 var config = {
     apiKey: "AIzaSyAxzdilvqZCVXdPjAMnnQzTLyCvvFntmlk",
     authDomain: "fishfirebase.firebaseapp.com",
@@ -15,6 +16,7 @@ firebase.initializeApp(config);
 var database = firebase.database();
 //var storage = firebase.storage();
 
+//linebot的設定，需要下面三個才能使用linebot
 const bot = linebot({
 	channelId: process.env.CHANNEL_ID,
 	channelSecret: process.env.CHANNEL_SECRET,
@@ -23,30 +25,30 @@ const bot = linebot({
 
 const app = express();
 const linebotParser = bot.parser();
-
+//首頁的get方法，開啟首頁會看到Hello World
 app.get('/',function(req,res){
 	res.send('Hello World');
 });
-
+//upload頁面的get，呼叫/public/index.html檔案
 app.get('/upload', function (req,res) {
 	res.sendFile(__dirname + '/public/index.html');
 });
 
-app.post('/linewebhook', linebotParser);
+app.post('/linewebhook', linebotParser);//這裡linebot只寫了post而沒有寫get是因為linebot只需要做服務調用，而不是一個網頁
 
-bot.on('message', function (event) {
+bot.on('message', function (event) {//linebot的接收訊息方法，event是回傳的值，可以用event.message.type來判斷傳來的訊息是什麼型態
 	switch (event.message.type){
-		case 'text' :
-			var setname = '/setname';
-			var setprofession = '/setprofession';
-			var message = event.message.text;
-			var add = "add";
-			var order = "order";
+		case 'text' ://判斷是text型態
+			var setname = '/setname';//這裡是指令的宣告，/setname是使用者輸入的指令
+			var setprofession = '/setprofession';//同上
+			var message = event.message.text;//這裡接收到text的主要訊息(文字)
+			var add = "add";//同上指令的宣告
+			var order = "order";//同上指令的宣告
 			var research = 0;//旗標，判斷是否有重複的指令
 
 			
-			if(message.search(setname) != -1){
-				event.source.profile().then(function (profile) {
+			if(message.search(setname) != -1){//如果有找到這段指令
+				event.source.profile().then(function (profile) {//對firebases內的資料做更新
 				var name = message.substring(setname.length +1 , message.length);
 				var ref = database.ref('/user/' + profile.userId);
 				var firebasevalue = {
@@ -54,10 +56,10 @@ bot.on('message', function (event) {
                            		userName: name,
                         	};
 				ref.update(firebasevalue);
-				event.reply(name + '名字設定好了');
+				event.reply(name + '名字設定好了');//event.reply()是linebot回覆的方法
 				});
 				break;
-			}else if(message.search(setprofession)!= -1){
+			}else if(message.search(setprofession)!= -1){//如果有找到這段指令
 				event.source.profile().then(function (profile) {
 				var profession = message.substring(setprofession.length +1 , message.length);
 				var ref = database.ref('/user/' + profile.userId);
@@ -69,13 +71,13 @@ bot.on('message', function (event) {
 				event.reply(profession + '職業設定好了');
 				});
 				break;
-			}else if (message.search(add) !=-1 && message.search(order)!= -1){//手動新增指令
+			}else if (message.search(add) !=-1 && message.search(order)!= -1){//手動新增指令，可以讓使用者自己增加指令
             	var ref = database.ref('/order/');
             	var addOrder = message.substring(message.search(add) + add.length +1 , message.search(order) -1);//擷取add後面，order前面的字串
             	var addAnswer = message.substring(message.search(order) + order.length + 1, message.length);//擷取order後面的字串直到結尾
-            	if (addAnswer.trim() === ''  || addOrder.trim() === '' || message.search(order) - message.search(add) < 0){
+            	if (addAnswer.trim() === ''  || addOrder.trim() === '' || message.search(order) - message.search(add) < 0){//如果接收到的資料中有空，則會回傳看不懂
             		event.reply('你說的 ' + message + ' 我看不懂，請說人話');
-				} else {
+				} else {//如果都不是空的
                     var lineOrder = {
                         order: addOrder,
                         answer: addAnswer,
@@ -84,7 +86,7 @@ bot.on('message', function (event) {
                     function gotData(snap) {
                         var data = snap.val();
                         var keys = Object.keys(data);
-                        for (var i = 0; i < keys.length; i++) {
+                        for (var i = 0; i < keys.length; i++) {//先用迴圈跑完所有指令，看有沒有相同的指令
                             var k = keys[i];
                             if (addOrder === data[k].order) {
                                 research = 1;//有相同指令就改變旗標，然後跳出迴圈
